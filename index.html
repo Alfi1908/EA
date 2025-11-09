@@ -1,0 +1,474 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeepTalk — Game Kartu untuk Berdua</title>
+    <style>
+        :root {
+            --bg:#0f172a;
+            --card:#0b1220;
+            --accent:#7c3aed;
+            --muted:#94a3b8;
+            --glass: rgba(255,255,255,0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            margin: 0;
+            background: linear-gradient(180deg,#071029 0%, #071826 100%);
+            color: #e6eef8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 980px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+        }
+
+        header {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        button, .chip {
+            background: var(--glass);
+            color: inherit;
+            border: 1px solid rgba(255,255,255,0.03);
+            padding: 8px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .chip.active {
+            background: linear-gradient(90deg,var(--accent),#3b82f6);
+            box-shadow: 0 6px 20px rgba(124,58,237,0.18);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .card-viewport {
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius: 12px;
+            padding: 18px;
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 560px;
+            min-height: 180px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,0.03);
+            box-shadow: 0 10px 40px rgba(7,9,25,0.6);
+            text-align: center;
+        }
+
+        .question {
+            font-size: 18px;
+            line-height: 1.4;
+        }
+
+        .meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .small {
+            padding: 8px 10px;
+            border-radius: 8px;
+        }
+
+        .right-panel {
+            background: rgba(255,255,255,0.01);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        label {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.03);
+            background: transparent;
+            color: inherit;
+        }
+
+        .history {
+            max-height: 260px;
+            overflow: auto;
+            margin-top: 8px;
+        }
+
+        .hist-item {
+            padding: 8px;
+            border-bottom: 1px dashed rgba(255,255,255,0.03);
+            font-size: 13px;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 6px 8px;
+            border-radius: 999px;
+        }
+
+        .add-form {
+            display: grid;
+            gap: 8px;
+        }
+
+        .share {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        @media (max-width:900px) {
+            .board {
+                grid-template-columns: 1fr;
+            }
+
+            .right-panel {
+                order: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div>
+                <h1>EA DEEPTALK</h1>
+                <div class="meta">Tarik kartu, jawab jujur, dan nikmati obrolan yang lebih dalam (atau lebih receh).</div>
+            </div>
+            <div class="controls">
+                <button id="shuffleBtn">🔀 Acak</button>
+                <button id="drawBtn" class="small">🎴 Tarik Kartu</button>
+            </div>
+        </header>
+
+        <div class="chips" id="categoryChips">
+            <!-- chips generated by JS -->
+        </div>
+
+        <div class="board">
+            <div class="card-viewport">
+                <div class="card" id="card">
+                    <div class="tag" id="cardCategory">--</div>
+                    <div class="question" id="questionText">Tekan "Tarik Kartu" untuk memulai.</div>
+                    <div class="meta" id="questionIndex"></div>
+                    <div class="btn-row">
+                        <button id="againBtn" class="small">Tarik Lagi</button>
+                        <button id="saveBtn" class="small">✅ Simpan ke History</button>
+                        <button id="surpriseBtn" class="small">🎲 Tantangan Acak</button>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="right-panel">
+                <div>
+                    <label>History (pertanyaan yang disimpan)</label>
+                    <div class="history" id="historyList">Belum ada history.</div>
+                </div>
+
+                <hr />
+                <div style="margin-top:8px">
+                    <label>Tambah pertanyaan kustom</label>
+                    <form id="addForm" class="add-form">
+                        <select id="addCategory">
+                            <!-- options filled by JS -->
+                        </select>
+                        <textarea id="addText" rows="3" placeholder="Tulis pertanyaan..." required></textarea>
+                        <div style="display:flex; gap:8px">
+                            <button type="submit" class="small">Tambah</button>
+                            <button type="button" id="clearCustom" class="small">Hapus Kustom</button>
+                        </div>
+                    </form>
+                </div>
+
+                <hr />
+                <div>
+                    <label>Pengaturan cepat</label>
+                    <div style="display:flex; gap:8px; margin-top:8px">
+                        <button id="exportBtn" class="small">📤 Ekspor</button>
+                        <button id="importBtn" class="small">📥 Impor</button>
+                        <button id="resetBtn" class="small">♻ Reset</button>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+
+        <footer>
+            <div>Mode: <span id="activeMode">Santai</span></div>
+            <div>Made with ❤️ — Main & ngobrol</div>
+        </footer>
+    </div>
+
+    <script>
+        const DATA = {
+            "Semua": [
+              "Apa kenangan masa kecil yang membuatmu bahagia?",
+              "Apa ketakutan terbesarmu dalam hubungan?",
+              "Bagaimana kamu mendefinisikan cinta?",
+              "Apa yang kamu harapkan dari hubungan kita 5 tahun ke depan?",
+              "Sebutkan satu hal tentang diriku yang ingin kamu ubah (jika ada) — dan kenapa?",
+              "Apa impian tertinggi yang belum kamu ceritakan padaku?",
+              "Kapan terakhir kali kamu merasa sangat rentan? Ceritakan.",
+              "Apa pengalaman paling menyakitkan yang pernah kamu alami, dan apa pelajarannya?",
+              "Bagaimana kamu ingin dikenang oleh orang-orang terdekatmu?",
+              "Di mana kamu membayangkan kita hidup bersama? Kota atau suasana seperti apa?",
+              "Apa prioritas terbesarmu dalam 10 tahun ke depan?",
+              "Cita-citamu yang paling ingin diwujudkan sebelum usia 40?",
+              "Bagaimana kamu melihat peran pasangan dalam mencapai impianmu?",
+              "Ingin punya anak? Kalau iya, berapa dan bagaimana membesarkannya?",
+              "Apa skill baru yang ingin kamu pelajari di masa depan?",
+              "Jika punya kesempatan pindah ke luar negeri, mau atau tidak? Kenapa?",
+              "Apa yang membuatmu merasa dicintai?",
+              "Satu kata yang menurutmu menggambarkan hubungan kita. Mengapa?",
+              "Apa hal kecil yang membuat hatimu meleleh?",
+              "Kapan terakhir kali kamu merasa kecewa? Bagaimana kita bisa memperbaikinya?",
+              "Apa gesture sederhana yang selalu berhasil membuatmu senang?",
+              "Hal apa yang membuatmu insecure akhir-akhir ini?",
+              "Apa bentuk dukungan yang paling kamu butuhkan dariku?",
+              "Sebutkan satu kebiasaanku yang mengganggumu, tapi kamu belum pernah bilang.",
+              "Apa yang membuatmu merasa tidak nyaman tapi kamu tahan?",
+              "Adakah batasan yang belum kita bahas yang menurutmu penting?",
+              "Bagian mana dari kepribadianku yang paling sulit kamu pahami?",
+              "Hal apa yang paling kamu hindari dalam konflik?",
+              "Kalau aku binatang apa aku menurutmu?",
+              "Apa momen paling konyol yang pernah kita alami bersama?",
+              "Sebutkan kata yang paling konyol menurutmu—alasan?",
+              "Kalau kita bertukar pekerjaan sehari, kamu mau jadi apa?",
+              "Kalau kita jadi karakter kartun, genre apa cocok?",
+              "Makanan apa yang paling sering bikin kamu nyesel setelah makan?",
+              "Mana yang lebih dulu kamu pilih: pizza atau nasi goreng?",
+              "Pilih: selimut hangat atau AC dingin?",
+              "Apa emoji yang paling sering kamu kirim padaku?",
+              "Kalau punya superpower gagal total, apa itu?",
+              "Mana lebih nyebelin: sandal basah atau kaus kaki bolong?",
+              "Momen paling malu tapi lucu yang pernah kamu alami?"
+            ]
+        };
+
+        // load custom from localStorage
+        const CUSTOM_KEY = 'deeptalk_custom_questions_v1';
+        const getCustom = ()=> JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}');
+        const setCustom = (obj)=> localStorage.setItem(CUSTOM_KEY, JSON.stringify(obj));
+
+        const categories = Object.keys(DATA);
+        const allQuestions = {};
+
+        function initData(){
+            // merge default + custom
+            const custom = getCustom();
+            categories.forEach(cat=>{
+                allQuestions[cat] = [...(DATA[cat]||[])];
+            if(custom[cat]) allQuestions[cat].push(...custom[cat]);
+        });
+        }
+
+        // state
+        let activeCategory = 'Deep';
+        let deck = [];
+        let lastQuestion = null;
+        let history = JSON.parse(localStorage.getItem('deeptalk_history_v1') || '[]');
+
+        // dom
+        const chipsEl = document.getElementById('categoryChips');
+        const cardCat = document.getElementById('cardCategory');
+        const qText = document.getElementById('questionText');
+        const qIndex = document.getElementById('questionIndex');
+        const drawBtn = document.getElementById('drawBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const againBtn = document.getElementById('againBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const surpriseBtn = document.getElementById('surpriseBtn');
+        const historyList = document.getElementById('historyList');
+        const addForm = document.getElementById('addForm');
+        const addCategory = document.getElementById('addCategory');
+        const addText = document.getElementById('addText');
+        const clearCustom = document.getElementById('clearCustom');
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const activeMode = document.getElementById('activeMode');
+
+        function renderChips(){
+            chipsEl.innerHTML = '';
+            categories.forEach(cat=>{
+                const btn = document.createElement('button');
+            btn.className = 'chip'+(cat===activeCategory? ' active':'');
+            btn.textContent = cat;
+            btn.onclick = ()=>{ activeCategory = cat; rebuildDeck(); renderChips(); }
+        chipsEl.appendChild(btn);
+        });
+        }
+
+        function rebuildDeck(){
+            deck = [...allQuestions[activeCategory]];
+            // simple shuffle
+            for(let i=deck.length-1;i>0;i--){
+                const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]];
+            }
+        }
+
+        function showQuestion(q, idx=null, cat=null){
+            cardCat.textContent = cat || activeCategory;
+            qText.textContent = q || 'Kosong';
+            qIndex.textContent = idx!=null ? `#${idx+1} dari ${allQuestions[cat||activeCategory].length}` : '';
+            lastQuestion = {q,cat:cat||activeCategory,idx};
+        }
+
+        function draw(){
+            if(deck.length===0) { qText.textContent='Deck habis — tekan Acak untuk isi ulang.'; return; }
+            const q=deck.pop();
+            showQuestion(q, allQuestions[activeCategory].indexOf(q), activeCategory);
+        }
+
+        drawBtn.onclick = ()=> draw();
+        shuffleBtn.onclick = ()=>{ rebuildDeck(); alert('Deck diacak!'); }
+        againBtn.onclick = ()=> draw();
+        surpriseBtn.onclick = ()=>{
+            const cats = categories;
+        const randCat = cats[Math.floor(Math.random()*cats.length)];
+        const pool = allQuestions[randCat];
+        if(!pool || pool.length===0) return; const q = pool[Math.floor(Math.random()*pool.length)];
+        showQuestion(q, allQuestions[randCat].indexOf(q), randCat);
+        }
+
+        saveBtn.onclick = ()=>{
+            if(!lastQuestion || !lastQuestion.q) return alert('Belum ada pertanyaan untuk disimpan.');
+        history.unshift({question:lastQuestion.q, category:lastQuestion.cat, at:new Date().toISOString()});
+        localStorage.setItem('deeptalk_history_v1', JSON.stringify(history));
+        renderHistory();
+        }
+
+        function renderHistory(){
+            if(history.length===0){ historyList.innerHTML='Belum ada history.'; return; }
+            historyList.innerHTML='';
+            history.forEach(item=>{
+                const div=document.createElement('div'); div.className='hist-item';
+            div.innerHTML = `<strong>[${item.category}]</strong> ${item.question} <div style="font-size:11px;color:var(--muted)">${new Date(item.at).toLocaleString()}</div>`;
+        historyList.appendChild(div);
+        })
+        }
+
+        addForm.onsubmit = (e)=>{
+            e.preventDefault();
+        const cat = addCategory.value;
+        const text = addText.value.trim();
+        if(!text) return;
+        const custom = getCustom();
+        if(!custom[cat]) custom[cat]=[];
+        custom[cat].push(text);
+        setCustom(custom);
+        initData(); rebuildDeck(); addText.value=''; alert('Pertanyaan kustom ditambahkan!');
+        }
+
+        clearCustom.onclick = ()=>{
+            if(!confirm('Hapus semua pertanyaan kustom?')) return;
+        localStorage.removeItem(CUSTOM_KEY); initData(); rebuildDeck(); alert('Pertanyaan kustom dihapus.');
+        }
+
+        exportBtn.onclick = ()=>{
+            const payload = {custom:getCustom(), history};
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='deeptalk-export.json'; a.click(); URL.revokeObjectURL(url);
+        }
+
+        importBtn.onclick = ()=>{
+            const input = document.createElement('input'); input.type='file'; input.accept='application/json';
+        input.onchange = (e)=>{
+            const f = e.target.files[0]; if(!f) return;
+        const reader = new FileReader(); reader.onload = ()=>{
+            try{
+                const obj = JSON.parse(reader.result);
+        if(obj.custom) { setCustom(obj.custom); }
+        if(obj.history) { history = obj.history; localStorage.setItem('deeptalk_history_v1', JSON.stringify(history)); }
+        initData(); rebuildDeck(); renderHistory(); alert('Impor selesai.');
+        }catch(err){ alert('Gagal impor: file tidak valid.'); }
+        }; reader.readAsText(f);
+        };
+        input.click();
+        }
+
+        resetBtn.onclick = ()=>{ if(!confirm('Reset game (hapus history + kustom)?')) return; localStorage.removeItem(CUSTOM_KEY); localStorage.removeItem('deeptalk_history_v1'); history=[]; initData(); rebuildDeck(); renderHistory(); alert('Reset selesai.'); }
+
+        // init
+        function setup(){
+            initData();
+            // fill addCategory
+            addCategory.innerHTML = categories.map(c=>`<option value="${c}">${c}</option>`).join('');
+            renderChips(); rebuildDeck(); renderHistory();
+        }
+        setup();
+
+    </script>
+</body>
+</html>
